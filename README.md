@@ -3,24 +3,26 @@
 A Homebrew tap for [DIALibraryGenerator](https://github.com/okohlbacher/DIALibraryGenerator):
 in-silico DIA spectral library generation from a FASTA, built on OpenMS.
 
-## Read this first: nothing here is notarized yet
+## Read this first: these builds are unsigned
 
 The releases this tap points at are **not signed with an Apple Developer ID and
-not notarized**, and on current macOS that is not a warning you can click
-through — it is fatal, and silent:
+not notarized**. That is a deliberate choice for now, not an oversight — but on
+current macOS it has a consequence worth stating plainly, because it is silent:
 
-- A **cask** install completes, and then the binary is killed by Gatekeeper the
+- A **cask** install completes, and the binary is then killed by Gatekeeper the
   first time it runs (`Killed: 9`), or stops inside `dyld` before `main` at 0%
-  CPU and waits forever. `syspolicyd` logs `Adding Gatekeeper denial breadcrumb`.
-- Removing `com.apple.quarantine` afterwards **does not help**: the denial is
-  decided from the provenance record, which a normal user cannot remove.
+  CPU and waits. `syspolicyd` logs
+  `Adding Gatekeeper denial breadcrumb ... (team: (null))`.
+- Removing `com.apple.quarantine` afterwards **does not help**: the decision
+  comes from the provenance record, not the attribute.
 - Homebrew 6 **removed the `--no-quarantine` flag**, so there is no opt-out at
-  install time either.
-- The **formula** below fares no better, for the same reason.
+  install time.
+- The **formula** behaves the same way, for the same reason.
 
-All of that was measured on macOS 26.5, not assumed.
+Measured on macOS 26.5, not assumed.
 
-**What does work today:** download the release archive and extract it yourself.
+**The route that works today** is to download the release archive and extract it
+yourself — nothing marks it, and it runs:
 
 ```bash
 curl -fsSLO https://github.com/okohlbacher/DIALibraryGenerator/releases/latest/download/DIALibraryGenerator-macos-arm64.tar.gz
@@ -28,13 +30,16 @@ tar xzf DIALibraryGenerator-macos-arm64.tar.gz
 ./bin/DIALibraryGenerator --help
 ```
 
-The casks and the formula in this tap are correct in every other respect —
-pinned version, per-architecture digests, the right macOS floor, a wrapper that
-lets the tool find its own data and libraries — and they will work unchanged the
-day the releases are notarized. Until then they are here to be reviewed, not
-installed.
+After a blocked run, System Settings → Privacy & Security may also offer an
+"Allow Anyway" button for the binary. That is the standard path for unsigned
+software; it needs a click, so it was not verified here.
 
-## Once notarization lands
+The casks and the formula are correct in every other respect — pinned version,
+per-architecture digests, the right macOS floor, a wrapper that lets the tool
+find its own data and libraries — and they need no change the day the releases
+are signed.
+
+## Installing from the tap
 
 ```bash
 brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator       # desktop app
