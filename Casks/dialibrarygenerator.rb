@@ -1,9 +1,9 @@
 cask "dialibrarygenerator" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.2.1"
-  sha256 arm:   "d24c0095d4a14deb1b1ba0147c144d6b5d21586a76b29a7733026c5874310fef",
-         intel: "cded4f02373b207fb100488cae2cb6a851f4d316d8b2ea9d994e1a13f74683f5"
+  version "0.2.2"
+  sha256 arm:   "ae220438aa968c9b06aa48c98d40481088f97be55e2b0a43f63bf502bb5c22e5",
+         intel: "8bd6c57bd729a591bffc0b52954844991c4c9b4af2952b82019f2f7212b7d90c"
 
   url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-gui-macos-#{arch}.dmg"
   name "DIALibraryGenerator"

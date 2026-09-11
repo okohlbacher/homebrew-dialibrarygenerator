@@ -1,9 +1,9 @@
 cask "dialibrarygenerator-cli" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.2.1"
-  sha256 arm:   "77303fff3d2c47fdb3ea1aa3cc731f0912f605341f26cd5b6c7eedefdeefebc1",
-         intel: "66ae589035d0173b2cbaec615fb5475e93bfb41f6064c42fd2a29efc771a368e"
+  version "0.2.2"
+  sha256 arm:   "e00cf0c4047e07539fe20bb86a2375f08cb030cb1f9fc4f4d295a2a3bb72c305",
+         intel: "55782551fb5b237ca24cfa1cca0a2319945febd7a16cf686661bfecd9eb0e88e"
 
   # A versioned download URL, never releases/latest/download/: a pinned digest
   # has to point at a file that cannot change underneath it.
