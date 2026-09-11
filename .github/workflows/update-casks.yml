@@ -175,7 +175,10 @@ jobs:
           DIALibraryGenerator -write_config eff.json
           grep -q '"schema_version"' eff.json
           brew uninstall --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
-          ! command -v DIALibraryGenerator
+          # NOT `command -v`: bash caches resolved command paths, so it still
+          # reports the wrapper that was just unlinked. Ask the filesystem.
+          [ ! -e "$(brew --prefix)/bin/DIALibraryGenerator" ] \
+            || { echo "::error::uninstall left the command wrapper behind"; exit 1; }
 
       - name: Commit
         if: steps.rel.outputs.skip != 'true'

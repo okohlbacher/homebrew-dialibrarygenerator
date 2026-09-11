@@ -36,9 +36,9 @@ cask "dialibrarygenerator-cli" do
                   executable: "#{staged_path}/bin/DIALibraryGenerator"
 
   caveats <<~EOS
-    NOT NOTARIZED, and on current macOS that means Gatekeeper KILLS this
-    binary on sight -- see the tap README. Until the project has an Apple
-    Developer ID, download the release tarball and extract it yourself.
+    These builds are unsigned. On a Mac with Gatekeeper enforcing, this
+    command is refused the first time it runs, with no message. See the tap
+    README; extracting the release archive yourself is unaffected.
 
     This tool ships no model weights. It needs the three AlphaPeptDeep ONNX
     exports (peptdeep_{rt,ms2,ccs}_dynamic.onnx) in one directory, named by
