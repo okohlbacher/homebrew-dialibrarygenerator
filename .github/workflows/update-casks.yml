@@ -152,6 +152,37 @@ jobs:
             echo "$c -> $WANT  arm=${arm:0:12} intel=${int:0:12}"
           done
 
+          # The formula ships the same CLI archives as the CLI cask, so it takes
+          # the same two digests. It was added after this workflow existed and
+          # went one release without being bumped -- hence a step here rather
+          # than a comment saying to remember.
+          arm=$(digest DIALibraryGenerator-macos-arm64.tar.gz)
+          int=$(digest DIALibraryGenerator-macos-x64.tar.gz)
+          python3 - Formula/dialibrarygenerator.rb "$WANT" "$arm" "$int" <<'PYEOF'
+          import re, sys
+          path, version, arm, intel = sys.argv[1:5]
+          lines = open(path).read().split("\n")
+          seen_version = False
+          want = None
+          hits = 0
+          for i, line in enumerate(lines):
+              if re.fullmatch(r'  version "[^"]*"', line):
+                  lines[i] = f'  version "{version}"'
+                  seen_version = True
+              elif "on_arm do" in line:
+                  want = arm
+              elif "on_intel do" in line:
+                  want = intel
+              elif want and re.fullmatch(r'\s*sha256 "[0-9a-f]{64}"', line):
+                  lines[i] = re.sub(r'"[0-9a-f]{64}"', f'"{want}"', line)
+                  want = None
+                  hits += 1
+          assert seen_version, f"{path}: no version stanza"
+          assert hits == 2, f"{path}: rewrote {hits} digests, expected 2"
+          open(path, "w").write("\n".join(lines))
+          PYEOF
+          echo "formula -> $WANT"
+
       - name: Audit, style and install-test
         if: steps.rel.outputs.skip != 'true'
         run: |
@@ -160,6 +191,7 @@ jobs:
             brew audit --cask --strict --online "okohlbacher/dialibrarygenerator/$c"
             brew style "okohlbacher/dialibrarygenerator/$c"
           done
+          brew style Formula/dialibrarygenerator.rb
 
           # The install test is the only step that proves the thing users
           # actually do. In particular it proves command_wrapper works: run
@@ -174,6 +206,13 @@ jobs:
           # startup path including the data lookup.
           DIALibraryGenerator -write_config eff.json
           grep -q '"schema_version"' eff.json
+          # The formula is the other route to the same archive; install-test it
+          # too, or its digests are the only thing about it ever checked.
+          brew install okohlbacher/dialibrarygenerator/dialibrarygenerator
+          DIALibraryGenerator --help 2>&1 | grep -q "^Version: ${{ steps.rel.outputs.version }}" \\
+            || { echo "::error::the formula's CLI reports the wrong version"; exit 1; }
+          brew uninstall okohlbacher/dialibrarygenerator/dialibrarygenerator
+
           brew uninstall --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
           # NOT `command -v`: bash caches resolved command paths, so it still
           # reports the wrapper that was just unlinked. Ask the filesystem.

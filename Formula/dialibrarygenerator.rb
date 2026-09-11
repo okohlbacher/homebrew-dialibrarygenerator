@@ -1,7 +1,7 @@
 class Dialibrarygenerator < Formula
   desc "In-silico DIA spectral library generation from a FASTA"
   homepage "https://github.com/okohlbacher/DIALibraryGenerator"
-  version "0.2.1"
+  version "0.2.2"
   license "BSD-3-Clause"
 
   # A FORMULA, not only a cask, and this is the reason: Homebrew registers a
@@ -13,12 +13,12 @@ class Dialibrarygenerator < Formula
   # way, so the same bytes run.
   on_macos do
     on_arm do
-      url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v0.2.1/DIALibraryGenerator-macos-arm64.tar.gz"
-      sha256 "77303fff3d2c47fdb3ea1aa3cc731f0912f605341f26cd5b6c7eedefdeefebc1"
+      url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-macos-arm64.tar.gz"
+      sha256 "e00cf0c4047e07539fe20bb86a2375f08cb030cb1f9fc4f4d295a2a3bb72c305"
     end
     on_intel do
-      url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v0.2.1/DIALibraryGenerator-macos-x64.tar.gz"
-      sha256 "66ae589035d0173b2cbaec615fb5475e93bfb41f6064c42fd2a29efc771a368e"
+      url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-macos-x64.tar.gz"
+      sha256 "55782551fb5b237ca24cfa1cca0a2319945febd7a16cf686661bfecd9eb0e88e"
     end
   end
 
