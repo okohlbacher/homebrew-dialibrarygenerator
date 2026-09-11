@@ -1,0 +1,161 @@
+name: update-casks
+
+# Keeps both casks in step with DIALibraryGenerator's releases.
+#
+# The update logic lives HERE, in the tap, not in the product repo. That is not
+# an organisational preference: a push from the product repo into this one would
+# need a cross-repository token, and a scheduled run in the tap needs no secret
+# at all -- its own GITHUB_TOKEN can read a public release and push here.
+#
+# The cost is latency (up to six hours) and one GitHub quirk: a scheduled
+# workflow is DISABLED after 60 days without a commit to the repository. A run
+# that changes nothing makes no commit, so a quiet tap eventually stops checking
+# itself. workflow_dispatch is the manual route, and is what a release should
+# trigger by hand until that matters.
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish (default: the latest release)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-casks
+  cancel-in-progress: false
+
+jobs:
+  update:
+    # macOS, because the steps below install the casks and run the tool.
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      # The checkout IS the tap: brew edits these files in place and the commit
+      # at the end is pushed with the credentials actions/checkout left behind.
+      - name: Register the checkout as a tap
+        run: |
+          set -euo pipefail
+          TAPDIR="$(brew --repository)/Library/Taps/okohlbacher/homebrew-dialibrarygenerator"
+          mkdir -p "$(dirname "$TAPDIR")"
+          ln -sfn "$PWD" "$TAPDIR"
+          brew tap-info okohlbacher/dialibrarygenerator
+          # Homebrew 6 refuses to load Ruby from an untrusted third-party tap.
+          brew trust okohlbacher/dialibrarygenerator || true
+
+      - name: Resolve the release
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WANT: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          REPO=okohlbacher/DIALibraryGenerator
+          if [ -n "${WANT:-}" ]; then
+            # Validated before it reaches a shell or a URL.
+            echo "$WANT" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+              || { echo "::error::'$WANT' is not a vX.Y.Z tag"; exit 1; }
+            json=$(gh release view "$WANT" --repo "$REPO" --json tagName,isDraft,isPrerelease,assets)
+          else
+            json=$(gh release view --repo "$REPO" --json tagName,isDraft,isPrerelease,assets)
+          fi
+          tag=$(jq -r .tagName <<<"$json")
+          [ "$(jq -r .isDraft <<<"$json")" = "false" ] || { echo "::error::$tag is a draft"; exit 1; }
+          [ "$(jq -r .isPrerelease <<<"$json")" = "false" ] \
+            || { echo "::error::$tag is a pre-release"; exit 1; }
+
+          # Completeness. A cask pins a digest to a URL, so publishing one
+          # before every asset is uploaded produces a cask that 404s for
+          # whoever installs in the gap.
+          have=$(jq -r '.assets[].name' <<<"$json")
+          missing=0
+          for a in DIALibraryGenerator-macos-arm64.tar.gz \
+                   DIALibraryGenerator-macos-x64.tar.gz \
+                   DIALibraryGenerator-gui-macos-arm64.dmg \
+                   DIALibraryGenerator-gui-macos-x64.dmg; do
+            grep -qx "$a" <<<"$have" || { echo "$tag is missing $a"; missing=1; }
+          done
+          if [ "$missing" = 1 ]; then
+            if [ -n "${WANT:-}" ]; then
+              echo "::error::$tag is incomplete"; exit 1
+            fi
+            # On a schedule this is usually "still uploading". The product
+            # repo's own release-complete job is the loud signal, not this.
+            echo "::warning::$tag is incomplete -- nothing to do this round"
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Bump or verify each cask
+        if: steps.rel.outputs.skip != 'true'
+        env:
+          WANT: ${{ steps.rel.outputs.version }}
+        run: |
+          set -euo pipefail
+          for c in dialibrarygenerator dialibrarygenerator-cli; do
+            cur=$(brew info --cask --json=v2 "okohlbacher/dialibrarygenerator/$c" \
+                    | jq -r '.casks[0].version')
+            echo "$c: $cur -> $WANT"
+            if [ "$cur" = "$WANT" ]; then
+              # Already at the target. Re-fetch rather than rewrite: this
+              # catches assets that were REPLACED under an existing tag, which
+              # is a situation to fail on, not to paper over -- brew upgrade
+              # compares versions, not digests, so refreshing a digest would
+              # never reach anyone who already installed.
+              brew fetch --cask --arch all "okohlbacher/dialibrarygenerator/$c"
+              continue
+            fi
+            # A lower target than what is published means a release was demoted
+            # or deleted. That needs a human; the red run is the alert.
+            newest=$(printf '%s\n%s\n' "$cur" "$WANT" | sort -V | tail -1)
+            [ "$newest" = "$WANT" ] \
+              || { echo "::error::$c is at $cur, newer than $WANT"; exit 1; }
+            # Homebrew's own tool: it downloads both architectures, computes
+            # both digests and rewrites exactly the version and sha256 stanzas.
+            brew bump-cask-pr --write-only --no-audit --no-style \
+              --version "$WANT" "okohlbacher/dialibrarygenerator/$c"
+          done
+
+      - name: Audit, style and install-test
+        if: steps.rel.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          for c in dialibrarygenerator dialibrarygenerator-cli; do
+            brew audit --cask --strict --online "okohlbacher/dialibrarygenerator/$c"
+            brew style "okohlbacher/dialibrarygenerator/$c"
+          done
+
+          # The install test is the only step that proves the thing users
+          # actually do. In particular it proves command_wrapper works: run
+          # from an unrelated directory, the tool has to find its own share/
+          # and its dylib closure inside the Caskroom.
+          brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
+          cd /tmp
+          DIALibraryGenerator --help > help.txt 2>&1
+          grep -q "^Version: ${{ steps.rel.outputs.version }}" help.txt \
+            || { echo "::error::the installed CLI reports the wrong version"; cat help.txt; exit 1; }
+          # -write_config needs no input and no models, and exercises the whole
+          # startup path including the data lookup.
+          DIALibraryGenerator -write_config eff.json
+          grep -q '"schema_version"' eff.json
+          brew uninstall --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
+          ! command -v DIALibraryGenerator
+
+      - name: Commit
+        if: steps.rel.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          git add Casks
+          git diff --cached --quiet && { echo "already current"; exit 0; }
+          git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "casks: DIALibraryGenerator ${{ steps.rel.outputs.tag }}"
+          git push
