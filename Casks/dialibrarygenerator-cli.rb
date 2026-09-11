@@ -1,9 +1,9 @@
 cask "dialibrarygenerator-cli" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.0.0"
-  sha256 arm:   "0000000000000000000000000000000000000000000000000000000000000000",
-         intel: "0000000000000000000000000000000000000000000000000000000000000000"
+  version "0.2.1"
+  sha256 arm:   "77303fff3d2c47fdb3ea1aa3cc731f0912f605341f26cd5b6c7eedefdeefebc1",
+         intel: "66ae589035d0173b2cbaec615fb5475e93bfb41f6064c42fd2a29efc771a368e"
 
   # A versioned download URL, never releases/latest/download/: a pinned digest
   # has to point at a file that cannot change underneath it.
@@ -36,6 +36,10 @@ cask "dialibrarygenerator-cli" do
                   executable: "#{staged_path}/bin/DIALibraryGenerator"
 
   caveats <<~EOS
+    NOT NOTARIZED, and on current macOS that means Gatekeeper KILLS this
+    binary on sight -- see the tap README. Until the project has an Apple
+    Developer ID, download the release tarball and extract it yourself.
+
     This tool ships no model weights. It needs the three AlphaPeptDeep ONNX
     exports (peptdeep_{rt,ms2,ccs}_dynamic.onnx) in one directory, named by
     DIALIBGEN_MODEL_DIR or in the config. See the project README.

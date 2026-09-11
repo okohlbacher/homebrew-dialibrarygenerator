@@ -106,34 +106,50 @@ jobs:
           echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Bump or verify each cask
+      # The digests are computed HERE, from the release assets, rather than by
+      # `brew bump-cask-pr --version`. That tool is supposed to resolve the url
+      # once per architecture; on an arm64 runner it fetched
+      # DIALibraryGenerator-gui-macos-arm64.dmg twice and wrote the same sha256
+      # for arm and intel -- which brew style then rejected, and which would
+      # otherwise have shipped an intel cask that refuses its own download.
+      # Two curls and a regex have no such opinion.
+      - name: Write the version and digests
         if: steps.rel.outputs.skip != 'true'
         env:
+          TAG: ${{ steps.rel.outputs.tag }}
           WANT: ${{ steps.rel.outputs.version }}
         run: |
           set -euo pipefail
+          base="https://github.com/okohlbacher/DIALibraryGenerator/releases/download/$TAG"
+          digest() {
+            curl -fsSL "$base/$1" | shasum -a 256 | cut -d' ' -f1
+          }
           for c in dialibrarygenerator dialibrarygenerator-cli; do
-            cur=$(brew info --cask --json=v2 "okohlbacher/dialibrarygenerator/$c" \
-                    | jq -r '.casks[0].version')
-            echo "$c: $cur -> $WANT"
-            if [ "$cur" = "$WANT" ]; then
-              # Already at the target. Re-fetch rather than rewrite: this
-              # catches assets that were REPLACED under an existing tag, which
-              # is a situation to fail on, not to paper over -- brew upgrade
-              # compares versions, not digests, so refreshing a digest would
-              # never reach anyone who already installed.
-              brew fetch --cask --arch all "okohlbacher/dialibrarygenerator/$c"
-              continue
-            fi
-            # A lower target than what is published means a release was demoted
-            # or deleted. That needs a human; the red run is the alert.
-            newest=$(printf '%s\n%s\n' "$cur" "$WANT" | sort -V | tail -1)
-            [ "$newest" = "$WANT" ] \
-              || { echo "::error::$c is at $cur, newer than $WANT"; exit 1; }
-            # Homebrew's own tool: it downloads both architectures, computes
-            # both digests and rewrites exactly the version and sha256 stanzas.
-            brew bump-cask-pr --write-only --no-audit --no-style \
-              --version "$WANT" "okohlbacher/dialibrarygenerator/$c"
+            case "$c" in
+              dialibrarygenerator)     arm_a=DIALibraryGenerator-gui-macos-arm64.dmg
+                                       int_a=DIALibraryGenerator-gui-macos-x64.dmg ;;
+              dialibrarygenerator-cli) arm_a=DIALibraryGenerator-macos-arm64.tar.gz
+                                       int_a=DIALibraryGenerator-macos-x64.tar.gz ;;
+            esac
+            arm=$(digest "$arm_a"); int=$(digest "$int_a")
+            # Identical digests for two different files means the wrong file was
+            # fetched twice -- the exact failure this step replaces.
+            [ "$arm" != "$int" ] \
+              || { echo "::error::$c: arm and intel digests are identical"; exit 1; }
+            python3 - "Casks/$c.rb" "$WANT" "$arm" "$int" <<'PYEOF'
+          import re, sys
+          path, version, arm, intel = sys.argv[1:5]
+          s = open(path).read()
+          s, n = re.subn(r'^  version "[^"]*"$', f'  version "{version}"', s, count=1, flags=re.M)
+          assert n == 1, f"{path}: no version stanza"
+          s, n = re.subn(
+              r'^  sha256 arm:\s*"[0-9a-f]{64}",\n         intel: "[0-9a-f]{64}"$',
+              f'  sha256 arm:   "{arm}",\n         intel: "{intel}"',
+              s, count=1, flags=re.M)
+          assert n == 1, f"{path}: no sha256 stanza in the expected shape"
+          open(path, "w").write(s)
+          PYEOF
+            echo "$c -> $WANT  arm=${arm:0:12} intel=${int:0:12}"
           done
 
       - name: Audit, style and install-test

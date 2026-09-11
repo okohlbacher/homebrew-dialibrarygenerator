@@ -1,9 +1,9 @@
 cask "dialibrarygenerator" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.0.0"
-  sha256 arm:   "0000000000000000000000000000000000000000000000000000000000000000",
-         intel: "0000000000000000000000000000000000000000000000000000000000000000"
+  version "0.2.1"
+  sha256 arm:   "d24c0095d4a14deb1b1ba0147c144d6b5d21586a76b29a7733026c5874310fef",
+         intel: "cded4f02373b207fb100488cae2cb6a851f4d316d8b2ea9d994e1a13f74683f5"
 
   url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-gui-macos-#{arch}.dmg"
   name "DIALibraryGenerator"
@@ -38,6 +38,9 @@ cask "dialibrarygenerator" do
   ]
 
   caveats <<~EOS
+    NOT NOTARIZED. macOS will refuse to open this app until you allow it in
+    System Settings -> Privacy & Security. See the tap README.
+
     The app carries its own copy of the command-line tool. Install
     dialibrarygenerator-cli only if you also want it on PATH.
 
