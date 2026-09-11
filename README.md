@@ -10,11 +10,16 @@ building OpenMS on the user's machine.
 ## These builds are unsigned
 
 The releases this tap points at carry no Apple Developer ID and are not
-notarized. On current macOS that has a consequence you should know before
-installing: **a binary installed through Homebrew is refused by Gatekeeper the
-first time it runs**, with no error message — it is killed, or it stops before
-`main` and waits. Removing `com.apple.quarantine` does not change it, and
+notarized. On a Mac with Gatekeeper enforcing — which is the default — that has
+a consequence you should know before installing: **a binary installed through
+Homebrew is refused the first time it runs**, with no error message. It is
+killed, or it stops before `main` and waits. Removing `com.apple.quarantine`
+does not change it, because the decision comes from the provenance record, and
 Homebrew 6 no longer has a `--no-quarantine` flag.
+
+(A CI runner, where Gatekeeper is not enforcing, installs and runs these casks
+without complaint. That is why the tap's own install test passes and your Mac
+may still refuse them.)
 
 The route that works today is to download the release archive and extract it
 yourself:
@@ -29,7 +34,7 @@ After a blocked run, System Settings → Privacy & Security may also offer an
 "Allow Anyway" button. That is the usual path for unsigned software; it needs a
 click, so it is not verified here.
 
-Everything else about the casks and the formula is in order, and none of it
+Everything else about the casks is in order, and none of it
 needs to change once the releases are signed.
 
 ## Installing from the tap
@@ -37,7 +42,6 @@ needs to change once the releases are signed.
 ```bash
 brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator       # desktop app
 brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli   # CLI on PATH
-brew install okohlbacher/dialibrarygenerator/dialibrarygenerator              # CLI, as a formula
 ```
 
 The fully qualified name taps this repository and trusts just that cask, which
@@ -45,9 +49,7 @@ Homebrew 6 requires before it will load Ruby from a third-party tap.
 
 Two casks: the app already carries its own private copy of the CLI, so one cask
 installing both would put the same tree on disk twice, and the audiences differ
-— a workstation versus a server or a script. The formula is an alternative route
-to the CLI that keeps its bundled libraries in `libexec` rather than linking
-them into the Homebrew prefix, where they would collide with other formulae.
+— a workstation versus a server or a script.
 
 Both require macOS 14. The binaries are built for 13.3 and Homebrew's `macos:`
 symbols name whole releases, so the cask rounds up rather than promise a machine
