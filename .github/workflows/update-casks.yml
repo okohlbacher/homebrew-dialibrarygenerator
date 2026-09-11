@@ -34,6 +34,15 @@ jobs:
   update:
     # macOS, because the steps below install the casks and run the tool.
     runs-on: macos-15
+    env:
+      # brew audit --online calls the GitHub API, and unauthenticated it gets
+      # 60 requests an hour for the whole runner IP -- which is shared, so the
+      # budget is routinely already spent when the job starts. The runner's own
+      # token raises it and costs nothing; this is not a new secret.
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+      HOMEBREW_NO_ANALYTICS: "1"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_FROM_API: "1"
     steps:
       - uses: actions/checkout@v5
 
