@@ -12,12 +12,12 @@ cask "dialibrarygenerator-cli" do
   desc "In-silico DIA spectral library generation from a FASTA"
   homepage "https://github.com/okohlbacher/DIALibraryGenerator"
 
-  depends_on macos: :ventura
-
   livecheck do
     url :url
     strategy :github_latest
   end
+
+  depends_on macos: :ventura
 
   # command_wrapper, NOT `binary`. A plain binary stanza symlinks
   # $(brew --prefix)/bin/DIALibraryGenerator at the staged executable, and the
