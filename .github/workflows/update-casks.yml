@@ -47,7 +47,10 @@ jobs:
           ln -sfn "$PWD" "$TAPDIR"
           brew tap-info okohlbacher/dialibrarygenerator
           # Homebrew 6 refuses to load Ruby from an untrusted third-party tap.
-          brew trust okohlbacher/dialibrarygenerator || true
+          # --tap, and NOT tolerated with `|| true`: without the flag the name
+          # is taken as a formula or cask, and a silently-untrusted tap fails
+          # several steps later with a message about the cask, not the trust.
+          brew trust --tap okohlbacher/dialibrarygenerator
 
       - name: Resolve the release
         id: rel
