@@ -32,13 +32,14 @@ cask "dialibrarygenerator-cli" do
   # neither exists. command_wrapper writes a shim that execs the ABSOLUTE
   # staged path instead, so the relative lookup lands inside the Caskroom
   # where the data and the dylib closure actually are.
+  #
+  # The second wrapper is the model fetcher: the models are not shipped, so the
+  # thing that downloads them has to be on PATH too, and it derives the install
+  # prefix from the binary it finds -- which has to resolve into the Caskroom
+  # for the same reason. No blank line between the two: brew style requires
+  # stanzas of the same kind to be adjacent (Cask/StanzaGrouping).
   command_wrapper "DIALibraryGenerator",
                   executable: "#{staged_path}/bin/DIALibraryGenerator"
-
-  # The models are not shipped, so the thing that fetches them has to be on PATH
-  # too -- a cask is the whole of what most people have. command_wrapper for the
-  # same reason as above: the script derives the install prefix from the binary
-  # it finds, and that has to resolve into the Caskroom.
   command_wrapper "dialibgen-fetch-models",
                   executable: "#{staged_path}/bin/dialibgen-fetch-models"
 
