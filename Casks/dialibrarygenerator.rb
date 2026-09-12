@@ -38,9 +38,6 @@ cask "dialibrarygenerator" do
   ]
 
   caveats <<~EOS
-    These builds are unsigned. macOS will refuse to open this app until you
-    allow it in System Settings -> Privacy & Security. See the tap README.
-
     The app carries its own copy of the command-line tool. Install
     dialibrarygenerator-cli only if you also want it on PATH.
 

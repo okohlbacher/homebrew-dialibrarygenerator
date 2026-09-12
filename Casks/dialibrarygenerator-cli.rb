@@ -35,13 +35,25 @@ cask "dialibrarygenerator-cli" do
   command_wrapper "DIALibraryGenerator",
                   executable: "#{staged_path}/bin/DIALibraryGenerator"
 
-  caveats <<~EOS
-    These builds are unsigned. On a Mac with Gatekeeper enforcing, this
-    command is refused the first time it runs, with no message. See the tap
-    README; extracting the release archive yourself is unaffected.
+  # The models are not shipped, so the thing that fetches them has to be on PATH
+  # too -- a cask is the whole of what most people have. command_wrapper for the
+  # same reason as above: the script derives the install prefix from the binary
+  # it finds, and that has to resolve into the Caskroom.
+  command_wrapper "dialibgen-fetch-models",
+                  executable: "#{staged_path}/bin/dialibgen-fetch-models"
 
-    This tool ships no model weights. It needs the three AlphaPeptDeep ONNX
-    exports (peptdeep_{rt,ms2,ccs}_dynamic.onnx) in one directory, named by
-    DIALIBGEN_MODEL_DIR or in the config. See the project README.
+  caveats <<~EOS
+    No model weights are shipped. Fetch them once:
+
+        dialibgen-fetch-models
+
+    That downloads the three AlphaPeptDeep ONNX exports, checks each against a
+    pinned SHA256, and puts them where this tool already looks -- nothing to
+    set afterwards. A cask upgrade replaces this directory, so run it again
+    after upgrading.
+
+    The FIRST run takes several minutes and is not stuck. macOS validates each
+    of the 145 bundled libraries with Apple individually; the verdict is cached
+    and every later run starts in about a second.
   EOS
 end
