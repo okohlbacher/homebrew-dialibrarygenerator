@@ -1,6 +1,6 @@
 # homebrew-dialibrarygenerator
 
-A Homebrew tap for [DIALibraryGenerator](https://github.com/okohlbacher/DIALibraryGenerator):
+A Homebrew tap for [DIALibGen](https://github.com/okohlbacher/DIALibGen):
 in-silico DIA spectral library generation from a FASTA, built on OpenMS.
 
 macOS only, and a tap rather than homebrew-core — core does not accept
@@ -25,9 +25,9 @@ The route that works today is to download the release archive and extract it
 yourself:
 
 ```bash
-curl -fsSLO https://github.com/okohlbacher/DIALibraryGenerator/releases/latest/download/DIALibraryGenerator-macos-arm64.tar.gz
-tar xzf DIALibraryGenerator-macos-arm64.tar.gz
-./bin/DIALibraryGenerator --help
+curl -fsSLO https://github.com/okohlbacher/DIALibGen/releases/latest/download/DIALibGen-macos-arm64.tar.gz
+tar xzf DIALibGen-macos-arm64.tar.gz
+./bin/DIALibGen --help
 ```
 
 After a blocked run, System Settings → Privacy & Security may also offer an
@@ -40,8 +40,8 @@ needs to change once the releases are signed.
 ## Installing from the tap
 
 ```bash
-brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator       # desktop app
-brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli   # CLI on PATH
+brew install --cask okohlbacher/dialibrarygenerator/dialibgen       # desktop app
+brew install --cask okohlbacher/dialibrarygenerator/dialibgen-cli   # CLI on PATH
 ```
 
 The fully qualified name taps this repository and trusts just that cask, which

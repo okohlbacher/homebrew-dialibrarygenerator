@@ -1,6 +1,6 @@
 name: update-casks
 
-# Keeps both casks in step with DIALibraryGenerator's releases.
+# Keeps both casks in step with DIALibGen's releases.
 #
 # The update logic lives HERE, in the tap, not in the product repo. That is not
 # an organisational preference: a push from the product repo into this one would
@@ -68,7 +68,7 @@ jobs:
           WANT: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          REPO=okohlbacher/DIALibraryGenerator
+          REPO=okohlbacher/DIALibGen
           if [ -n "${WANT:-}" ]; then
             # Validated before it reaches a shell or a URL.
             echo "$WANT" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
@@ -87,10 +87,10 @@ jobs:
           # whoever installs in the gap.
           have=$(jq -r '.assets[].name' <<<"$json")
           missing=0
-          for a in DIALibraryGenerator-macos-arm64.tar.gz \
-                   DIALibraryGenerator-macos-x64.tar.gz \
-                   DIALibraryGenerator-gui-macos-arm64.dmg \
-                   DIALibraryGenerator-gui-macos-x64.dmg; do
+          for a in DIALibGen-macos-arm64.tar.gz \
+                   DIALibGen-macos-x64.tar.gz \
+                   DIALibGen-gui-macos-arm64.dmg \
+                   DIALibGen-gui-macos-x64.dmg; do
             grep -qx "$a" <<<"$have" || { echo "$tag is missing $a"; missing=1; }
           done
           if [ "$missing" = 1 ]; then
@@ -109,7 +109,7 @@ jobs:
       # The digests are computed HERE, from the release assets, rather than by
       # `brew bump-cask-pr --version`. That tool is supposed to resolve the url
       # once per architecture; on an arm64 runner it fetched
-      # DIALibraryGenerator-gui-macos-arm64.dmg twice and wrote the same sha256
+      # DIALibGen-gui-macos-arm64.dmg twice and wrote the same sha256
       # for arm and intel -- which brew style then rejected, and which would
       # otherwise have shipped an intel cask that refuses its own download.
       # Two curls and a regex have no such opinion.
@@ -120,16 +120,16 @@ jobs:
           WANT: ${{ steps.rel.outputs.version }}
         run: |
           set -euo pipefail
-          base="https://github.com/okohlbacher/DIALibraryGenerator/releases/download/$TAG"
+          base="https://github.com/okohlbacher/DIALibGen/releases/download/$TAG"
           digest() {
             curl -fsSL "$base/$1" | shasum -a 256 | cut -d' ' -f1
           }
-          for c in dialibrarygenerator dialibrarygenerator-cli; do
+          for c in dialibgen dialibgen-cli; do
             case "$c" in
-              dialibrarygenerator)     arm_a=DIALibraryGenerator-gui-macos-arm64.dmg
-                                       int_a=DIALibraryGenerator-gui-macos-x64.dmg ;;
-              dialibrarygenerator-cli) arm_a=DIALibraryGenerator-macos-arm64.tar.gz
-                                       int_a=DIALibraryGenerator-macos-x64.tar.gz ;;
+              dialibgen)     arm_a=DIALibGen-gui-macos-arm64.dmg
+                                       int_a=DIALibGen-gui-macos-x64.dmg ;;
+              dialibgen-cli) arm_a=DIALibGen-macos-arm64.tar.gz
+                                       int_a=DIALibGen-macos-x64.tar.gz ;;
             esac
             arm=$(digest "$arm_a"); int=$(digest "$int_a")
             # Identical digests for two different files means the wrong file was
@@ -157,7 +157,7 @@ jobs:
         if: steps.rel.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          for c in dialibrarygenerator dialibrarygenerator-cli; do
+          for c in dialibgen dialibgen-cli; do
             brew audit --cask --strict --online "okohlbacher/dialibrarygenerator/$c"
             brew style "okohlbacher/dialibrarygenerator/$c"
           done
@@ -166,19 +166,19 @@ jobs:
           # actually do. In particular it proves command_wrapper works: run
           # from an unrelated directory, the tool has to find its own share/
           # and its dylib closure inside the Caskroom.
-          brew install --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
+          brew install --cask okohlbacher/dialibrarygenerator/dialibgen-cli
           cd /tmp
-          DIALibraryGenerator --help > help.txt 2>&1
+          DIALibGen --help > help.txt 2>&1
           grep -q "^Version: ${{ steps.rel.outputs.version }}" help.txt \
             || { echo "::error::the installed CLI reports the wrong version"; cat help.txt; exit 1; }
           # -write_config needs no input and no models, and exercises the whole
           # startup path including the data lookup.
-          DIALibraryGenerator -write_config eff.json
+          DIALibGen -write_config eff.json
           grep -q '"schema_version"' eff.json
-          brew uninstall --cask okohlbacher/dialibrarygenerator/dialibrarygenerator-cli
+          brew uninstall --cask okohlbacher/dialibrarygenerator/dialibgen-cli
           # NOT `command -v`: bash caches resolved command paths, so it still
           # reports the wrapper that was just unlinked. Ask the filesystem.
-          [ ! -e "$(brew --prefix)/bin/DIALibraryGenerator" ] \
+          [ ! -e "$(brew --prefix)/bin/DIALibGen" ] \
             || { echo "::error::uninstall left the command wrapper behind"; exit 1; }
 
       - name: Commit
@@ -189,5 +189,5 @@ jobs:
           git diff --cached --quiet && { echo "already current"; exit 0; }
           git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-              commit -m "casks: DIALibraryGenerator ${{ steps.rel.outputs.tag }}"
+              commit -m "casks: DIALibGen ${{ steps.rel.outputs.tag }}"
           git push

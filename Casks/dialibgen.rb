@@ -1,14 +1,14 @@
-cask "dialibrarygenerator" do
+cask "dialibgen" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.9.1"
-  sha256 arm:   "2ea50ed662636b6fa18ca1d822bcb41205f50dec658ea12dfa45ad08da27c41a",
-         intel: "1f63c1e20118b5c32c1c23538b45a0a0ebd0c4f861ad6f70b77694c4c621b14e"
+  version "0.10.0"
+  sha256 arm:   "24c96fbd98d18abd568aae17aa628d89597d613ba01dffb024a39a182ae21226",
+         intel: "9d65ee910b80b025575e108e457896a79cef465b3a4461353204eb81b359d355"
 
-  url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-gui-macos-#{arch}.dmg"
-  name "DIALibraryGenerator"
+  url "https://github.com/okohlbacher/DIALibGen/releases/download/v#{version}/DIALibGen-gui-macos-#{arch}.dmg"
+  name "DIALibGen"
   desc "Desktop app for in-silico DIA spectral library generation from a FASTA"
-  homepage "https://github.com/okohlbacher/DIALibraryGenerator"
+  homepage "https://github.com/okohlbacher/DIALibGen"
 
   livecheck do
     url :url
@@ -23,9 +23,9 @@ cask "dialibrarygenerator" do
   # release tarball directly.
   depends_on macos: :sonoma
 
-  app "DIALibraryGenerator.app"
+  app "DIALibGen.app"
 
-  # By bundle id, so this quits ANY running DIALibraryGenerator.app, not only
+  # By bundle id, so this quits ANY running DIALibGen.app, not only
   # the one this cask installed.
   uninstall quit: "de.openms.dialibrarygenerator"
 
@@ -39,7 +39,7 @@ cask "dialibrarygenerator" do
 
   caveats <<~EOS
     The app carries its own copy of the command-line tool. Install
-    dialibrarygenerator-cli only if you also want it on PATH.
+    dialibgen-cli only if you also want it on PATH.
 
     No model weights are shipped: the app needs the three AlphaPeptDeep ONNX
     exports in one directory, which its Models picker will ask for.

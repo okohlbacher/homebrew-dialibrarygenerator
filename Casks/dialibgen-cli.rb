@@ -1,16 +1,16 @@
-cask "dialibrarygenerator-cli" do
+cask "dialibgen-cli" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.9.1"
-  sha256 arm:   "67a0874428f203b78774cc4f7746f78311385e9a55c71bb70b389782a8d9dbc6",
-         intel: "560ef4202c932e886fc2dec3c50dd051239641c5608873113c37a0365a71e892"
+  version "0.10.0"
+  sha256 arm:   "a4e7527895c429179121a4cb7509b4a42beedb6c260e49461fc0d7f068a4507f",
+         intel: "a05fa204d414d7775c03256c871b6d0ed4441cba77dd3f4d6a7d621a07856e4f"
 
   # A versioned download URL, never releases/latest/download/: a pinned digest
   # has to point at a file that cannot change underneath it.
-  url "https://github.com/okohlbacher/DIALibraryGenerator/releases/download/v#{version}/DIALibraryGenerator-macos-#{arch}.tar.gz"
-  name "DIALibraryGenerator command-line tool"
+  url "https://github.com/okohlbacher/DIALibGen/releases/download/v#{version}/DIALibGen-macos-#{arch}.tar.gz"
+  name "DIALibGen command-line tool"
   desc "In-silico DIA spectral library generation from a FASTA"
-  homepage "https://github.com/okohlbacher/DIALibraryGenerator"
+  homepage "https://github.com/okohlbacher/DIALibGen"
 
   livecheck do
     url :url
@@ -26,8 +26,8 @@ cask "dialibrarygenerator-cli" do
   depends_on macos: :sonoma
 
   # command_wrapper, NOT `binary`. A plain binary stanza symlinks
-  # $(brew --prefix)/bin/DIALibraryGenerator at the staged executable, and the
-  # tool then resolves share/DIALibraryGenerator and share/OpenMS relative to
+  # $(brew --prefix)/bin/DIALibGen at the staged executable, and the
+  # tool then resolves share/DIALibGen and share/OpenMS relative to
   # the path it was launched by -- which becomes /opt/homebrew/bin, where
   # neither exists. command_wrapper writes a shim that execs the ABSOLUTE
   # staged path instead, so the relative lookup lands inside the Caskroom
@@ -38,8 +38,8 @@ cask "dialibrarygenerator-cli" do
   # prefix from the binary it finds -- which has to resolve into the Caskroom
   # for the same reason. No blank line between the two: brew style requires
   # stanzas of the same kind to be adjacent (Cask/StanzaGrouping).
-  command_wrapper "DIALibraryGenerator",
-                  executable: "#{staged_path}/bin/DIALibraryGenerator"
+  command_wrapper "DIALibGen",
+                  executable: "#{staged_path}/bin/DIALibGen"
   command_wrapper "dialibgen-fetch-models",
                   executable: "#{staged_path}/bin/dialibgen-fetch-models"
 
