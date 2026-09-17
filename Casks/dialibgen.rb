@@ -41,7 +41,7 @@ cask "dialibgen" do
     The app carries its own copy of the command-line tool. Install
     dialibgen-cli only if you also want it on PATH.
 
-    No model weights are shipped: the app needs the three AlphaPeptDeep ONNX
-    exports in one directory, which its Models picker will ask for.
+    The three AlphaPeptDeep models are included from 0.10.1; the Models picker
+    only needs pointing somewhere else if you want different ones.
   EOS
 end

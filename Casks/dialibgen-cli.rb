@@ -44,14 +44,11 @@ cask "dialibgen-cli" do
                   executable: "#{staged_path}/bin/dialibgen-fetch-models"
 
   caveats <<~EOS
-    No model weights are shipped. Fetch them once:
+    The three AlphaPeptDeep models are included from 0.10.1, so this predicts
+    straight away with nothing to set and nothing to download.
 
-        dialibgen-fetch-models
-
-    That downloads the three AlphaPeptDeep ONNX exports, checks each against a
-    pinned SHA256, and puts them where this tool already looks -- nothing to
-    set afterwards. A cask upgrade replaces this directory, so run it again
-    after upgrading.
+    `dialibgen-fetch-models` is still here to refresh or verify them
+    (`--check`), and DIALIBGEN_MODEL_DIR still overrides them.
 
     The FIRST run takes several minutes and is not stuck. macOS validates each
     of the 145 bundled libraries with Apple individually; the verdict is cached
