@@ -1,9 +1,9 @@
 cask "dialibgen-cli" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.10.0"
-  sha256 arm:   "a4e7527895c429179121a4cb7509b4a42beedb6c260e49461fc0d7f068a4507f",
-         intel: "a05fa204d414d7775c03256c871b6d0ed4441cba77dd3f4d6a7d621a07856e4f"
+  version "0.10.1"
+  sha256 arm:   "0dc1d9a8252b2cea3445c3c7f92ea33645347f0d1ea91074bf5a9e77643b6476",
+         intel: "1d5b3c3cfd49480453c6e80003642575f024b6ad29c0c9c804d5d3bd0d3cdecf"
 
   # A versioned download URL, never releases/latest/download/: a pinned digest
   # has to point at a file that cannot change underneath it.
