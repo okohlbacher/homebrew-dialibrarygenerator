@@ -17,7 +17,7 @@ cask "dialibgen-cli" do
     strategy :github_latest
   end
 
-  # Homebrew expresses whole macOS releases; the binary needs at least 13.3.
+  # Release casks support macOS 14 or later.
   depends_on macos: :sonoma
 
   # Launch the absolute staged path so the tool finds its bundled data and libraries.

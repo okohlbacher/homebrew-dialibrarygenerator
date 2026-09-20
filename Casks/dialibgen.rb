@@ -7,7 +7,7 @@ cask "dialibgen" do
 
   url "https://github.com/okohlbacher/DIALibGen/releases/download/v#{version}/DIALibGen-gui-macos-#{arch}.dmg"
   name "DIALibGen"
-  desc "Desktop app for in-silico DIA spectral library generation from a FASTA"
+  desc "Generate, refine and fine-tune DIA spectral libraries"
   homepage "https://github.com/okohlbacher/DIALibGen"
 
   livecheck do
@@ -36,7 +36,7 @@ cask "dialibgen" do
     The app carries its own copy of the command-line tool. Install
     dialibgen-cli only if you also want it on PATH.
 
-    The three AlphaPeptDeep models are included from 0.10.1; the Models picker
-    only needs pointing somewhere else if you want different ones.
+    The three AlphaPeptDeep models and CPU fine-tuning runtime are included.
+    Use the model directory picker only when selecting different models.
   EOS
 end
