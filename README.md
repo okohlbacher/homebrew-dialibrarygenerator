@@ -9,7 +9,7 @@ brew install --cask okohlbacher/dialibrarygenerator/dialibgen
 ```
 
 The CLI generates, refines and tunes DIA spectral libraries in one
-TOPP-compatible executable. The desktop app provides the generation workflow
+TOPP-compatible executable. The desktop app provides all three workflows, including fine-tuning controls,
 and includes its own copy of the CLI. Install the CLI cask when you also need
 `DIALibGen` on PATH.
 
