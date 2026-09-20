@@ -74,7 +74,7 @@ with tempfile.TemporaryDirectory(prefix="dialibgen-cask-smoke-") as temp:
         library = work / f"{label}.tsv"
         run([binary, "-in", fasta, "-out", library, "-threads", "1"], work)
         assert len(library.read_text().splitlines()) > 1, f"{label}: prediction produced no fragments"
-        print(f"PASS: installed {label} CLI {version}, all modes, model-backed generation", flush=True)
+        print(f"PASS: installed {label} CLI {version}, three-mode schema and model-backed generation", flush=True)
 
 check_binary(app_binary)
 
