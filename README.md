@@ -1,80 +1,39 @@
-# homebrew-dialibrarygenerator
+# DIALibGen Homebrew tap
 
-A Homebrew tap for [DIALibGen](https://github.com/okohlbacher/DIALibGen):
-in-silico DIA spectral library generation from a FASTA, built on OpenMS.
-
-macOS only, and a tap rather than homebrew-core — core does not accept
-pre-built binaries for a tool this size, and a from-source formula would mean
-building OpenMS on the user's machine.
-
-## These builds are unsigned
-
-The releases this tap points at carry no Apple Developer ID and are not
-notarized. On a Mac with Gatekeeper enforcing — which is the default — that has
-a consequence you should know before installing: **a binary installed through
-Homebrew is refused the first time it runs**, with no error message. It is
-killed, or it stops before `main` and waits. Removing `com.apple.quarantine`
-does not change it, because the decision comes from the provenance record, and
-Homebrew 6 no longer has a `--no-quarantine` flag.
-
-(A CI runner, where Gatekeeper is not enforcing, installs and runs these casks
-without complaint. That is why the tap's own install test passes and your Mac
-may still refuse them.)
-
-The route that works today is to download the release archive and extract it
-yourself:
+Install [DIALibGen](https://github.com/okohlbacher/DIALibGen) on Apple Silicon
+or Intel Macs running macOS 14 or later:
 
 ```bash
-curl -fsSLO https://github.com/okohlbacher/DIALibGen/releases/latest/download/DIALibGen-macos-arm64.tar.gz
-tar xzf DIALibGen-macos-arm64.tar.gz
-./bin/DIALibGen --help
+brew install --cask okohlbacher/dialibrarygenerator/dialibgen-cli
+brew install --cask okohlbacher/dialibrarygenerator/dialibgen
 ```
 
-After a blocked run, System Settings → Privacy & Security may also offer an
-"Allow Anyway" button. That is the usual path for unsigned software; it needs a
-click, so it is not verified here.
+The CLI generates, refines and tunes DIA spectral libraries in one
+TOPP-compatible executable. The desktop app provides the generation workflow
+and includes its own copy of the CLI. Install the CLI cask when you also need
+`DIALibGen` on PATH.
 
-Everything else about the casks is in order, and none of it
-needs to change once the releases are signed.
+Release packages are Developer ID signed and notarized. They include the
+three AlphaPeptDeep prediction models, runtime libraries and CPU training;
+no Python environment or model download is needed. Override prediction models
+with `DIALIBGEN_MODEL_DIR`. See the product's
+[usage guide](https://github.com/okohlbacher/DIALibGen/blob/main/docs/usage.md)
+for refinement and tuning examples.
 
-## Installing from the tap
+macOS can spend time validating downloaded code on its first launch. Measured
+startup results and their limits are recorded in the product's
+[validation record](https://github.com/okohlbacher/DIALibGen/blob/main/docs/testing.md#macos-startup).
 
-```bash
-brew install --cask okohlbacher/dialibrarygenerator/dialibgen       # desktop app
-brew install --cask okohlbacher/dialibrarygenerator/dialibgen-cli   # CLI on PATH
-```
+## Updates
 
-The fully qualified name taps this repository and trusts just that cask, which
-Homebrew 6 requires before it will load Ruby from a third-party tap.
+The `update-casks` workflow checks for a complete published release every six
+hours, computes both architectures' SHA-256 digests, audits both casks, and
+installs, runs and uninstalls both casks on Apple Silicon (macOS 14) and Intel
+(macOS 15) before committing the update. Checks cover the installed versions,
+command wrapper, bundled models, prediction through both copies of the CLI,
+and a bounded normal launch of the desktop app. A release maintainer can
+dispatch it immediately with an optional `tag`, such as
+`v0.11.0`. Draft and prerelease versions are refused.
 
-Two casks: the app already carries its own private copy of the CLI, so one cask
-installing both would put the same tree on disk twice, and the audiences differ
-— a workstation versus a server or a script.
-
-Both require macOS 14. The binaries are built for 13.3 and Homebrew's `macos:`
-symbols name whole releases, so the cask rounds up rather than promise a machine
-it cannot load on.
-
-## Models are not included
-
-No model weights are shipped, and no tagged OpenMS release contains them. The
-tool needs three AlphaPeptDeep ONNX exports —
-`peptdeep_{rt,ms2,ccs}_dynamic.onnx` — in one directory, named by
-`DIALIBGEN_MODEL_DIR` or in the config file. The app asks for the directory; the
-CLI names the file it could not find and lists where it looked.
-
-## How this stays current
-
-`.github/workflows/update-casks.yml` runs every six hours, resolves the latest
-release, computes both architectures' digests from the release assets, rewrites
-the version and `sha256` stanzas, then audits, installs and runs the tool before
-committing anything. It needs no secrets, which is why it lives here rather than
-in the product repository.
-
-Two consequences worth knowing:
-
-- A release is picked up within six hours, not immediately. Run the workflow by
-  hand (`workflow_dispatch`, optionally with a `tag`) to publish one now.
-- GitHub disables a scheduled workflow after 60 days without a commit, and a run
-  that changes nothing commits nothing. If releases stop for two months, the
-  schedule stops with them.
+GitHub may disable schedules after 60 days without repository activity; the
+workflow can also be run manually.

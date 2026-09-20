@@ -24,42 +24,21 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: update-casks
   cancel-in-progress: false
 
 jobs:
-  update:
-    # macOS, because the steps below install the casks and run the tool.
-    runs-on: macos-15
-    env:
-      # brew audit --online calls the GitHub API, and unauthenticated it gets
-      # 60 requests an hour for the whole runner IP -- which is shared, so the
-      # budget is routinely already spent when the job starts. The runner's own
-      # token raises it and costs nothing; this is not a new secret.
-      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
-      HOMEBREW_NO_ANALYTICS: "1"
-      HOMEBREW_NO_AUTO_UPDATE: "1"
-      HOMEBREW_NO_INSTALL_FROM_API: "1"
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      skip: ${{ steps.rel.outputs.skip }}
+      version: ${{ steps.rel.outputs.version }}
+      tag: ${{ steps.rel.outputs.tag }}
     steps:
-      - uses: actions/checkout@v5
-
-      # The checkout IS the tap: brew edits these files in place and the commit
-      # at the end is pushed with the credentials actions/checkout left behind.
-      - name: Register the checkout as a tap
-        run: |
-          set -euo pipefail
-          TAPDIR="$(brew --repository)/Library/Taps/okohlbacher/homebrew-dialibrarygenerator"
-          mkdir -p "$(dirname "$TAPDIR")"
-          ln -sfn "$PWD" "$TAPDIR"
-          brew tap-info okohlbacher/dialibrarygenerator
-          # Homebrew 6 refuses to load Ruby from an untrusted third-party tap.
-          # --tap, and NOT tolerated with `|| true`: without the flag the name
-          # is taken as a formula or cask, and a silently-untrusted tap fails
-          # several steps later with a message about the cask, not the trust.
-          brew trust --tap okohlbacher/dialibrarygenerator
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Resolve the release
         id: rel
@@ -78,6 +57,8 @@ jobs:
             json=$(gh release view --repo "$REPO" --json tagName,isDraft,isPrerelease,assets)
           fi
           tag=$(jq -r .tagName <<<"$json")
+          echo "$tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            || { echo "::error::$tag is not a vX.Y.Z tag"; exit 1; }
           [ "$(jq -r .isDraft <<<"$json")" = "false" ] || { echo "::error::$tag is a draft"; exit 1; }
           [ "$(jq -r .isPrerelease <<<"$json")" = "false" ] \
             || { echo "::error::$tag is a pre-release"; exit 1; }
@@ -102,9 +83,11 @@ jobs:
             echo "::warning::$tag is incomplete -- nothing to do this round"
             echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
-          echo "skip=false" >> "$GITHUB_OUTPUT"
-          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          {
+            echo "skip=false"
+            echo "version=${tag#v}"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
 
       # The digests are computed HERE, from the release assets, rather than by
       # `brew bump-cask-pr --version`. That tool is supposed to resolve the url
@@ -152,9 +135,55 @@ jobs:
             echo "$c -> $WANT  arm=${arm:0:12} intel=${int:0:12}"
           done
 
-
-      - name: Audit, style and install-test
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: steps.rel.outputs.skip != 'true'
+        with:
+          name: updated-casks
+          path: Casks/*.rb
+          retention-days: 1
+          if-no-files-found: error
+
+  install:
+    needs: prepare
+    if: needs.prepare.outputs.skip != 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
+      HOMEBREW_NO_ANALYTICS: "1"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_FROM_API: "1"
+      EXPECTED_VERSION: ${{ needs.prepare.outputs.version }}
+      EXPECTED_ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: updated-casks
+          path: Casks
+
+      - name: Register the checkout as a tap
+        run: |
+          set -euo pipefail
+          TAPDIR="$(brew --repository)/Library/Taps/okohlbacher/homebrew-dialibrarygenerator"
+          mkdir -p "$(dirname "$TAPDIR")"
+          ln -sfn "$PWD" "$TAPDIR"
+          brew tap-info okohlbacher/dialibrarygenerator
+          # Homebrew 6 refuses to load Ruby from an untrusted third-party tap.
+          # --tap, and NOT tolerated with `|| true`: without the flag the name
+          # is taken as a formula or cask, and a silently-untrusted tap fails
+          # several steps later with a message about the cask, not the trust.
+          brew trust --tap okohlbacher/dialibrarygenerator
+
+      - name: Audit and style both casks
         run: |
           set -euo pipefail
           for c in dialibgen dialibgen-cli; do
@@ -162,32 +191,47 @@ jobs:
             brew style "okohlbacher/dialibrarygenerator/$c"
           done
 
-          # The install test is the only step that proves the thing users
-          # actually do. In particular it proves command_wrapper works: run
-          # from an unrelated directory, the tool has to find its own share/
-          # and its dylib closure inside the Caskroom.
+      - name: Install and verify both casks
+        run: |
+          set -euo pipefail
           brew install --cask okohlbacher/dialibrarygenerator/dialibgen-cli
-          cd /tmp
-          DIALibGen --help > help.txt 2>&1
-          grep -q "^Version: ${{ steps.rel.outputs.version }}" help.txt \
-            || { echo "::error::the installed CLI reports the wrong version"; cat help.txt; exit 1; }
-          # -write_config needs no input and no models, and exercises the whole
-          # startup path including the data lookup.
-          DIALibGen -write_config eff.json
-          grep -q '"schema_version"' eff.json
-          brew uninstall --cask okohlbacher/dialibrarygenerator/dialibgen-cli
-          # NOT `command -v`: bash caches resolved command paths, so it still
-          # reports the wrapper that was just unlinked. Ask the filesystem.
-          [ ! -e "$(brew --prefix)/bin/DIALibGen" ] \
-            || { echo "::error::uninstall left the command wrapper behind"; exit 1; }
+          brew install --cask okohlbacher/dialibrarygenerator/dialibgen
+          python3 .github/verify-install.py "$EXPECTED_VERSION" "$EXPECTED_ARCH"
 
-      - name: Commit
-        if: steps.rel.outputs.skip != 'true'
+      - name: Uninstall both casks
+        if: always()
+        run: |
+          set -euo pipefail
+          for c in dialibgen dialibgen-cli; do
+            if brew list --cask "$c" >/dev/null 2>&1; then
+              brew uninstall --cask "okohlbacher/dialibrarygenerator/$c"
+            fi
+          done
+          # Bash caches command paths; inspect the filesystem after uninstall.
+          [ ! -e "$(brew --prefix)/bin/DIALibGen" ]
+          [ ! -L "$(brew --prefix)/bin/DIALibGen" ]
+          [ ! -e /Applications/DIALibGen.app ]
+
+  commit:
+    needs: [prepare, install]
+    if: needs.prepare.outputs.skip != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: updated-casks
+          path: Casks
+      - name: Commit verified casks
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           set -euo pipefail
           git add Casks
           git diff --cached --quiet && { echo "already current"; exit 0; }
           git -c user.name='github-actions[bot]' \
               -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
-              commit -m "casks: DIALibGen ${{ steps.rel.outputs.tag }}"
+              commit -m "casks: DIALibGen $RELEASE_TAG"
           git push

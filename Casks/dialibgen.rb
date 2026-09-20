@@ -15,12 +15,7 @@ cask "dialibgen" do
     strategy :github_latest
   end
 
-  # The binaries are built with a 13.3 deployment target (libc++ shipped the
-  # floating-point std::to_chars there). Homebrew's macos symbols name whole
-  # releases, so :ventura would admit 13.0-13.2, where dyld refuses to load
-  # them -- the cask would install and the tool would never start. Rounded UP
-  # to the next release it can promise. 13.3-13.7 users can still unpack the
-  # release tarball directly.
+  # The desktop app requires macOS 14 or later.
   depends_on macos: :sonoma
 
   app "DIALibGen.app"
