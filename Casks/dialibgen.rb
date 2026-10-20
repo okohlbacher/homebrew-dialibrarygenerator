@@ -1,9 +1,9 @@
 cask "dialibgen" do
   arch arm: "arm64", intel: "x64"
 
-  version "0.12.1"
-  sha256 arm:   "b0d0e4765ad05ddba536e29e96eb6cd2292e7968ebd4af6f0d02ef998b122746",
-         intel: "42ed101e2f2d4907387f6e4d29e558d39ef08d231599a19548395db743fa1d20"
+  version "0.13.0"
+  sha256 arm:   "9eac3ac08c850a1fd8dd2450f8877d9914aef401e3c2e13e1f3842307ec9df64",
+         intel: "19e22bfe8454c9c810a9ca4a47972e9c07c65cc9e1c594f654f1121d5bd53c81"
 
   url "https://github.com/okohlbacher/DIALibGen/releases/download/v#{version}/DIALibGen-gui-macos-#{arch}.dmg"
   name "DIALibGen"
